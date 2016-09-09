@@ -2,11 +2,14 @@
 
 namespace DI\Test\UnitTest\Definition\Source;
 
+use DI\Definition\AliasDefinition;
 use DI\Definition\ArrayDefinition;
 use DI\Definition\FactoryDefinition;
 use DI\Definition\ObjectDefinition;
 use DI\Definition\Source\DefinitionArray;
 use DI\Definition\ValueDefinition;
+
+class Test {}
 
 /**
  * @covers \DI\Definition\Source\DefinitionArray
@@ -95,6 +98,28 @@ class DefinitionArrayTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf(ObjectDefinition::class, $definition);
         $this->assertEquals('foo', $definition->getName());
         $this->assertEquals('foo', $definition->getClassName());
+    }
+
+    public function testObjectAliasDefinition()
+    {
+        $class = Test::class;
+        $alias = "{$class}Alias";
+        class_alias($class, $alias);
+        $object = new $alias("foo");
+
+        $source = new DefinitionArray([
+            $alias => $object,
+        ]);
+
+        // get_class() returns the resolved class name,
+        // instead of the alias.
+        $definition_1 = $source->getDefinition(get_class($object));
+        $this->assertEquals($class, $definition_1->getName());
+        $this->assertInstanceOf(ValueDefinition::class, $definition_1);
+
+        $definition_2 = $source->getDefinition($alias);
+        $this->assertEquals($alias, $definition_2->getName());
+        $this->assertInstanceOf(AliasDefinition::class, $definition_2);
     }
 
     public function testFactoryDefinition()

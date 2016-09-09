@@ -2,12 +2,14 @@
 
 namespace DI\Definition\Source;
 
+use DI\Definition\AliasDefinition;
 use DI\Definition\ArrayDefinition;
 use DI\Definition\Definition;
 use DI\Definition\FactoryDefinition;
 use DI\Definition\Helper\DefinitionHelper;
 use DI\Definition\ObjectDefinition;
 use DI\Definition\ValueDefinition;
+use ReflectionClass;
 
 /**
  * Reads DI definitions from a PHP array.
@@ -40,6 +42,26 @@ class DefinitionArray implements DefinitionSource, MutableDefinitionSource
     public function __construct(array $definitions = [])
     {
         $this->definitions = $definitions;
+
+        foreach ($definitions as $name => $definition) {
+            // If the class $name exists,
+            // and is the same class as $definition,
+            // use that instead of $name.
+            // This adds support for class_alias().
+            if (class_exists($name)) {
+                $class = (new ReflectionClass($name))->getName();
+                if (
+                    $name !== $class
+                    && $class === get_class($definition)
+                ) {
+                    $this->definitions[$name] = new AliasDefinition(
+                        $name,
+                        $class
+                    );
+                    $this->definitions[$class] = $definition;
+                }
+            }
+        }
     }
 
     /**
